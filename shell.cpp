@@ -92,82 +92,63 @@ void executeSimpleCommand(const string &command) {
 }
 
 int main() {
-    string input;
-
     while (true) {
-        // Obtener directorio actual para mostrar en el prompt
+        // Mostrar prompt
         char cwd[PATH_MAX];
-        if (getcwd(cwd, sizeof(cwd)) == nullptr) {
-            perror("getcwd error");
-            continue;
-        }
+        if (!getcwd(cwd, sizeof(cwd))) { perror("getcwd"); continue; }
+        cout << COLOR_YELLOW "-SOShell-" COLOR_RESET << COLOR_BLUE << cwd << COLOR_RESET << "-$ ";
 
-        // Mostrar prompt con direccion actual
-        std::cout << COLOR_YELLOW "-SOShell-" COLOR_RESET << COLOR_BLUE << cwd << COLOR_RESET << "-$ ";
+        string input;
+        if (!getline(cin, input)) break;
+        if (input.empty()) continue;
 
-        std::string input;
-        if (!std::getline(std::cin, input)) break;
-
-        // separar en tokens
-        std::istringstream iss(input);
-        std::vector<std::string> tokens;
-        std::string token;
-        while (iss >> token) {
-            tokens.push_back(token);
-        }
+        // Separar la línea en tokens
+        istringstream iss(input);
+        vector<string> tokens;
+        string token;
+        while (iss >> token) tokens.push_back(token);
         if (tokens.empty()) continue;
 
-        // =========================
         // Comando exit
-        // =========================
-        
-        if (tokens[0] == "exit") { 
-            break;
-        }
+        if (tokens[0] == "exit") break;
 
-        // =========================
         // Comando cd
-        // =========================
-        
         if (tokens[0] == "cd") {
-            const char* path = nullptr;
-            if (tokens.size() == 1) {
-                path = getenv("HOME"); // si no recibe mas argumentos que cd vuelve al home
-            } else {
-                path = tokens[1].c_str();
-            }
-            if (chdir(path) != 0) {
-                perror("cd error");
-            }
+            const char* path = (tokens.size() > 1) ? tokens[1].c_str() : getenv("HOME");
+            if (chdir(path) != 0) perror("cd error");
             continue;
         }
 
-        // =========================
         // Comando miprof
-        // =========================
         if (tokens[0] == "miprof") {
             handleMiprof(tokens);
             continue;
         }
 
-        // =========================
-        // Otros Comandos
-        // =========================
-        
-        pid_t pid = fork();
-        if (pid == 0) {
-            // hijo
-            std::vector<char*> args;
-            for (auto &t : tokens) args.push_back(const_cast<char*>(t.c_str()));
-            args.push_back(nullptr);
+        // ======= Verificar si hay pipes =======
+        bool hasPipe = false;
+        for (auto &t : tokens) if (t == "|") { hasPipe = true; break; }
 
-            execvp(args[0], args.data());
-            perror("execvp error");
-            exit(1);
-        } else if (pid > 0) {
-            wait(nullptr);
+        if (hasPipe) {
+            // Separar la línea en comandos por pipes
+            vector<string> commands;
+            string cmd;
+            for (auto &t : tokens) {
+                if (t == "|") {
+                    if (!cmd.empty()) commands.push_back(cmd);
+                    cmd.clear();
+                } else {
+                    if (!cmd.empty()) cmd += " ";
+                    cmd += t;
+                }
+            }
+            if (!cmd.empty()) commands.push_back(cmd);
+
+            // Ejecutar comandos con pipes
+            executePipedCommands(commands);
         } else {
-            perror("fork error");
+            // Ejecutar comando simple
+            executeSimpleCommand(input);
         }
     }
 
