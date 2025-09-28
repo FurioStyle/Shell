@@ -1,0 +1,18 @@
+Comando: sort archivo_pequeno.txt 
+Tiempo real: 0.004s
+Tiempo usuario: 0.022s
+Tiempo sistema: 0.032s
+MaxRSS: 3808 KB
+
+Comando: sort archivo_mediano.txt 
+Tiempo real: 0.006s
+Tiempo usuario: 0.003s
+Tiempo sistema: 0.003s
+MaxRSS: 3424 KB
+
+Comando: sort archivo_grande.txt 
+Tiempo real: 0.036s
+Tiempo usuario: 0.018s
+Tiempo sistema: 0.024s
+MaxRSS: 3808 KB
+
